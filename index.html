@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance System</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --present: #2ecc71;
+            --absent: #e74c3c;
+            --leave: #f39c12;
+            --noworking: #95a5a6;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --text: #2c3e50;
+            --bg: #ffffff;
+            --border-radius: 8px;
+            --box-padding: 15px;
+            --box-margin: 10px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 100%;
+            width: 100%;
+            margin: 0 auto;
+            background-color: var(--bg);
+            padding: var(--box-padding);
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .control-panel {
+            margin-bottom: 20px;
+        }
+        
+        .date-selector {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        #attendance-date {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+        
+        #mark-no-working {
+            padding: 10px;
+            background-color: var(--noworking);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        
+        #mark-no-working.selected {
+            background-color: var(--noworking);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .grade-selector {
+            margin-bottom: 15px;
+        }
+        
+        #grade-class {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+        
+        .student-form {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 600px) {
+            .student-form {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        #new-student {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+        
+        #add-student {
+            padding: 10px 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+        
+        .attendance-table {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: var(--primary);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .status-container {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .status-btn {
+            padding: 6px 10px;
+            border: 2px solid;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            background-color: transparent;
+        }
+        
+        .status-btn i {
+            font-size: 12px;
+        }
+        
+        .present { 
+            border-color: var(--present); 
+            color: var(--present);
+        }
+        .present.selected {
+            background-color: var(--present);
+            color: white;
+        }
+        
+        .absent { 
+            border-color: var(--absent); 
+            color: var(--absent);
+        }
+        .absent.selected {
+            background-color: var(--absent);
+            color: white;
+        }
+        
+        .leave { 
+            border-color: var(--leave); 
+            color: var(--leave);
+        }
+        .leave.selected {
+            background-color: var(--leave);
+            color: white;
+        }
+        
+        .status-btn.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+            font-weight: bold;
+        }
+        
+        .delete-btn {
+            color: #e74c3c;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 5px;
+        }
+        
+        .action-btns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .action-btn {
+            padding: 10px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-align: center;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        
+        #save-btn { background-color: var(--primary); }
+        #download-btn { background-color: #27ae60; }
+        #copy-btn { background-color: #9b59b6; }
+        #monthly-report-btn { background-color: #16a085; }
+        #clear-btn { background-color: #e74c3c; }
+        
+        #save-btn:hover { background-color: #2980b9; }
+        #download-btn:hover { background-color: #219955; }
+        #copy-btn:hover { background-color: #8e44ad; }
+        #monthly-report-btn:hover { background-color: #138a72; }
+        #clear-btn:hover { background-color: #c0392b; }
+        
+        .stats-summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .stats-summary div {
+            margin-bottom: 5px;
+        }
+        
+        .total-students { font-weight: bold; }
+        .present-count { color: var(--present); font-weight: bold; }
+        .absent-count { color: var(--absent); font-weight: bold; }
+        .leave-count { color: var(--leave); font-weight: bold; }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+        
+        #monthly-report-content {
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 60vh;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--border-radius);
+        }
+        
+        .month-selector {
+            margin-bottom: 15px;
+        }
+        
+        #report-month {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+        
+        /* Copy modal styles */
+        #copy-modal {
+            display: none;
+        }
+        
+        #copy-modal-content {
+            max-width: 500px;
+        }
+        
+        #manual-copy-text {
+            width: 100%;
+            height: 200px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+        }
+        
+        #close-copy-modal {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #close-copy-modal:hover {
+            background-color: #2980b9;
+        }
+        
+        .no-working-info {
+            background-color: var(--noworking);
+            color: white;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Student Attendance System</h1>
+        
+        <div class="control-panel">
+            <div class="date-selector">
+                <input type="date" id="attendance-date">
+                <button id="mark-no-working">
+                    <i class="fas fa-calendar-times"></i> Mark as No Working Day
+                </button>
+            </div>
+            
+            <div class="grade-selector">
+                <input type="text" id="grade-class" placeholder="Grade (e.g., 5th Blue)">
+            </div>
+            
+            <div class="student-form">
+                <input type="text" id="new-student" placeholder="Student name">
+                <button id="add-student">Add Student</button>
+            </div>
+        </div>
+        
+        <div id="no-working-info" class="no-working-info" style="display: none;">
+            <i class="fas fa-info-circle"></i> This is marked as a non-working day
+        </div>
+        
+        <div class="stats-summary" id="stats-summary">
+            <!-- Statistics will be displayed here -->
+        </div>
+        
+        <div class="attendance-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roll No.</th>
+                        <th>Student Name</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="student-list">
+                    <!-- Students will be added here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="action-btns">
+            <button id="save-btn" class="action-btn">Save</button>
+            <button id="download-btn" class="action-btn">Download</button>
+            <button id="copy-btn" class="action-btn">
+                <span id="copy-btn-text">Copy Data</span>
+            </button>
+            <button id="monthly-report-btn" class="action-btn">Monthly Report</button>
+            <button id="clear-btn" class="action-btn">Clear All</button>
+        </div>
+    </div>
+
+    <!-- Monthly Report Modal -->
+    <div id="monthly-report-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Monthly Attendance Report</h2>
+            <div class="month-selector">
+                <input type="month" id="report-month">
+                <button id="generate-monthly-report" class="action-btn" style="margin-top: 10px;">Generate Report</button>
+            </div>
+            <div id="monthly-report-content"></div>
+            <button id="download-monthly-report" class="action-btn" style="margin-top: 15px;">Download Report</button>
+        </div>
+    </div>
+
+    <!-- Copy Modal -->
+    <div id="copy-modal" class="modal">
+        <div id="copy-modal-content" class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Copy Attendance Data</h3>
+            <p>Your browser blocked automatic copying. Please:</p>
+            <ol>
+                <li>Select the text below</li>
+                <li>Press Ctrl+C (Windows) or Command+C (Mac)</li>
+            </ol>
+            <textarea id="manual-copy-text" readonly></textarea>
+            <button id="close-copy-modal">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Load students from localStorage or initialize empty array
+        let students = JSON.parse(localStorage.getItem('students')) || [];
+        let attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || {};
+        let currentGrade = localStorage.getItem('currentGrade') || '';
+        let noWorkingDays = JSON.parse(localStorage.getItem('noWorkingDays')) || {};
+        
+        // Initialize the app
+        function init() {
+            // Set today's date as default
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('attendance-date').value = todayStr;
+            document.getElementById('grade-class').value = currentGrade;
+            
+            // Set current month as default
+            const currentMonth = today.toISOString().slice(0, 7);
+            document.getElementById('report-month').value = currentMonth;
+            
+            // Automatically mark Sundays as non-working days
+            if (today.getDay() === 0 && !noWorkingDays[todayStr]) {
+                noWorkingDays[todayStr] = true;
+                localStorage.setItem('noWorkingDays', JSON.stringify(noWorkingDays));
+            }
+            
+            // Load students for today's date
+            loadAttendance(todayStr);
+            
+            // Event listeners
+            document.getElementById('add-student').addEventListener('click', addStudent);
+            document.getElementById('new-student').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addStudent();
+            });
+            
+            document.getElementById('attendance-date').addEventListener('change', function() {
+                const dateStr = this.value;
+                const date = new Date(dateStr);
+                
+                // Automatically mark Sundays as non-working days
+                if (date.getDay() === 0 && !noWorkingDays[dateStr]) {
+                    noWorkingDays[dateStr] = true;
+                    localStorage.setItem('noWorkingDays', JSON.stringify(noWorkingDays));
+                }
+                
+                loadAttendance(dateStr);
+            });
+            
+            document.getElementById('grade-class').addEventListener('change', function() {
+                currentGrade = this.value;
+                localStorage.setItem('currentGrade', currentGrade);
+            });
+            
+            document.getElementById('save-btn').addEventListener('click', saveAttendance);
+            document.getElementById('download-btn').addEventListener('click', downloadList);
+            document.getElementById('copy-btn').addEventListener('click', copyData);
+            document.getElementById('monthly-report-btn').addEventListener('click', openMonthlyReportModal);
+            document.getElementById('clear-btn').addEventListener('click', clearAll);
+            
+            // No working day button
+            document.getElementById('mark-no-working').addEventListener('click', toggleNoWorkingDay);
+            
+            // Monthly report modal events
+            const monthlyModal = document.getElementById('monthly-report-modal');
+            const monthlyClose = monthlyModal.querySelector('.close');
+            
+            monthlyClose.onclick = function() {
+                monthlyModal.style.display = "none";
+            }
+            
+            document.getElementById('generate-monthly-report').addEventListener('click', generateMonthlyReport);
+            document.getElementById('download-monthly-report').addEventListener('click', downloadMonthlyReport);
+            
+            // Copy modal events
+            const copyModal = document.getElementById('copy-modal');
+            const copyClose = copyModal.querySelector('.close');
+            const manualClose = document.getElementById('close-copy-modal');
+            
+            copyClose.onclick = function() {
+                copyModal.style.display = "none";
+            }
+            
+            manualClose.onclick = function() {
+                copyModal.style.display = "none";
+            }
+            
+            window.onclick = function(event) {
+                if (event.target == monthlyModal) {
+                    monthlyModal.style.display = "none";
+                }
+                if (event.target == copyModal) {
+                    copyModal.style.display = "none";
+                }
+            }
+        }
+        
+        // Toggle no working day status for current date
+        function toggleNoWorkingDay() {
+            const date = document.getElementById('attendance-date').value;
+            const dateObj = new Date(date);
+            
+            // Don't allow changing Sundays
+            if (dateObj.getDay() === 0) {
+                alert('Sundays are automatically marked as non-working days and cannot be changed');
+                return;
+            }
+            
+            const button = document.getElementById('mark-no-working');
+            
+            if (noWorkingDays[date]) {
+                delete noWorkingDays[date];
+                button.classList.remove('selected');
+                document.getElementById('no-working-info').style.display = 'none';
+            } else {
+                noWorkingDays[date] = true;
+                button.classList.add('selected');
+                document.getElementById('no-working-info').style.display = 'block';
+            }
+            
+            localStorage.setItem('noWorkingDays', JSON.stringify(noWorkingDays));
+            loadAttendance(date);
+        }
+        
+        // Sort students alphabetically
+        function sortStudentsAlphabetically() {
+            students.sort((a, b) => a.name.localeCompare(b.name));
+            // Update roll numbers after sorting
+            students.forEach((student, index) => {
+                student.rollNo = index + 1;
+            });
+        }
+        
+        // Add new student
+        function addStudent() {
+            const nameInput = document.getElementById('new-student');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('Please enter student name');
+                return;
+            }
+            
+            // Check if student already exists
+            if (students.some(student => student.name.toLowerCase() === name.toLowerCase())) {
+                alert('Student with this name already exists');
+                return;
+            }
+            
+            const newStudent = {
+                id: Date.now(),
+                name: name,
+                rollNo: students.length + 1
+            };
+            
+            students.push(newStudent);
+            sortStudentsAlphabetically();
+            nameInput.value = '';
+            
+            localStorage.setItem('students', JSON.stringify(students));
+            loadAttendance(document.getElementById('attendance-date').value);
+            updateStatistics();
+        }
+        
+        // Add student to the table
+        function addStudentToTable(student, status = 'present') {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', student.id);
+            row.dataset.status = status;
+            
+            row.innerHTML = `
+                <td>${student.rollNo}</td>
+                <td>${student.name}</td>
+                <td>
+                    <div class="status-container">
+                        <button class="status-btn present ${status === 'present' ? 'selected' : ''}" data-status="present">
+                            <i class="fas fa-check"></i> Present
+                        </button>
+                        <button class="status-btn absent ${status === 'absent' ? 'selected' : ''}" data-status="absent">
+                            <i class="fas fa-times"></i> Absent
+                        </button>
+                        <button class="status-btn leave ${status === 'leave' ? 'selected' : ''}" data-status="leave">
+                            <i class="fas fa-umbrella-beach"></i> Leave
+                        </button>
+                    </div>
+                </td>
+                <td><button class="delete-btn" data-id="${student.id}"><i class="fas fa-trash"></i></button></td>
+            `;
+            
+            row.querySelectorAll('.status-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    setStatus(row, this.dataset.status);
+                    updateStatistics();
+                });
+            });
+            
+            row.querySelector('.delete-btn').addEventListener('click', function() {
+                deleteStudent(student.id);
+            });
+            
+            document.getElementById('student-list').appendChild(row);
+        }
+        
+        // Set attendance status
+        function setStatus(row, status) {
+            row.querySelectorAll('.status-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            const selectedBtn = row.querySelector(`[data-status="${status}"]`);
+            if (selectedBtn) selectedBtn.classList.add('selected');
+            row.dataset.status = status;
+        }
+        
+        // Delete student
+        function deleteStudent(id) {
+            if (!confirm('Delete this student?')) return;
+            
+            students = students.filter(student => student.id !== id);
+            sortStudentsAlphabetically();
+            
+            for (const date in attendanceRecords) {
+                attendanceRecords[date] = attendanceRecords[date].filter(record => record.id !== id);
+            }
+            
+            localStorage.setItem('students', JSON.stringify(students));
+            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+            loadAttendance(document.getElementById('attendance-date').value);
+            updateStatistics();
+        }
+        
+        // Load attendance
+        function loadAttendance(date) {
+            const studentList = document.getElementById('student-list');
+            studentList.innerHTML = '';
+            
+            const dateObj = new Date(date);
+            const isSunday = dateObj.getDay() === 0;
+            
+            // Update no working day button state
+            const noWorkingButton = document.getElementById('mark-no-working');
+            const noWorkingInfo = document.getElementById('no-working-info');
+            
+            if (noWorkingDays[date] || isSunday) {
+                noWorkingButton.classList.add('selected');
+                noWorkingInfo.style.display = 'block';
+                
+                if (isSunday) {
+                    noWorkingButton.disabled = true;
+                    noWorkingInfo.innerHTML = '<i class="fas fa-info-circle"></i> Sunday - Non-working day';
+                } else {
+                    noWorkingButton.disabled = false;
+                    noWorkingInfo.innerHTML = '<i class="fas fa-info-circle"></i> This is marked as a non-working day';
+                }
+            } else {
+                noWorkingButton.classList.remove('selected');
+                noWorkingInfo.style.display = 'none';
+                noWorkingButton.disabled = false;
+            }
+            
+            if (noWorkingDays[date] || isSunday) {
+                // Don't load students if it's a non-working day or Sunday
+                return;
+            }
+            
+            if (attendanceRecords[date]) {
+                // Create a map of student statuses for this date
+                const statusMap = {};
+                attendanceRecords[date].forEach(record => {
+                    statusMap[record.id] = record.status;
+                });
+                
+                // Add students with their statuses
+                students.forEach(student => {
+                    const status = statusMap[student.id] || 'present';
+                    addStudentToTable(student, status);
+                });
+            } else {
+                // No records for this date, show all students as present by default
+                students.forEach(student => addStudentToTable(student));
+            }
+            
+            updateStatistics();
+        }
+        
+        // Update statistics summary
+        function updateStatistics() {
+            const date = document.getElementById('attendance-date').value;
+            const dateObj = new Date(date);
+            const isSunday = dateObj.getDay() === 0;
+            const rows = document.querySelectorAll('#student-list tr');
+            let total = rows.length;
+            let present = 0;
+            let absent = 0;
+            let leave = 0;
+            
+            if (noWorkingDays[date] || isSunday) {
+                document.getElementById('stats-summary').innerHTML = `
+                    <div class="total-students">Total Students: ${total}</div>
+                    <div style="color: var(--noworking); font-weight: bold;">
+                        ${isSunday ? 'Sunday - Non-working day' : 'Today is marked as a non-working day'}
+                    </div>
+                `;
+                return;
+            }
+            
+            rows.forEach(row => {
+                const status = row.dataset.status || 'present';
+                if (status === 'present') present++;
+                if (status === 'absent') absent++;
+                if (status === 'leave') leave++;
+            });
+            
+            const summary = document.getElementById('stats-summary');
+            summary.innerHTML = `
+                <div class="total-students">Total Students: ${total}</div>
+                <div class="present-count">Present: ${present}</div>
+                <div class="absent-count">Absent: ${absent}</div>
+                <div class="leave-count">On Leave: ${leave}</div>
+            `;
+        }
+        
+        // Save attendance
+        function saveAttendance() {
+            const date = document.getElementById('attendance-date').value;
+            const dateObj = new Date(date);
+            const isSunday = dateObj.getDay() === 0;
+            
+            if (noWorkingDays[date] || isSunday) {
+                alert('Attendance not saved - this is a non-working day');
+                return;
+            }
+            
+            const records = Array.from(document.querySelectorAll('#student-list tr')).map(row => ({
+                id: parseInt(row.dataset.id),
+                status: row.dataset.status || 'present'
+            }));
+            
+            attendanceRecords[date] = records;
+            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+            alert('Attendance saved!');
+        }
+        
+        // Generate report text with the requested format
+        function generateReportText() {
+            const dateInput = document.getElementById('attendance-date').value;
+            const grade = document.getElementById('grade-class').value || 'Not specified';
+            const dateObj = new Date(dateInput);
+            const isSunday = dateObj.getDay() === 0;
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = monthNames[dateObj.getMonth()];
+            const year = dateObj.getFullYear();
+            const formattedDate = `${day}-${month}-${year}`;
+            
+            let content = `*ATTENDANCE REPORT Grade ${grade}*\n`;
+            content += `Date: ${formattedDate}\n\n`;
+            
+            if (noWorkingDays[dateInput] || isSunday) {
+                content += `*NON-WORKING DAY*\n`;
+                content += `${isSunday ? 'Sunday' : 'No classes were held on this date'}\n`;
+                return content;
+            }
+            
+            // Get statistics
+            const rows = document.querySelectorAll('#student-list tr');
+            let total = rows.length;
+            let present = 0;
+            let absent = 0;
+            let leave = 0;
+            
+            const absentStudents = [];
+            const leaveStudents = [];
+            const allStudents = [];
+            
+            rows.forEach(row => {
+                const rollNo = row.cells[0].textContent;
+                const name = row.cells[1].textContent;
+                const status = (row.dataset.status || 'present').toUpperCase();
+                
+                if (status === 'PRESENT') {
+                    present++;
+                } else if (status === 'ABSENT') {
+                    absent++;
+                    absentStudents.push(`${rollNo}. ${name}`);
+                } else if (status === 'LEAVE') {
+                    leave++;
+                    leaveStudents.push(`${rollNo}. ${name}`);
+                }
+                
+                allStudents.push({
+                    rollNo: rollNo.padEnd(5),
+                    name: name.padEnd(20),
+                    status: status
+                });
+            });
+            
+            // Add summary statistics
+            content += `*SUMMARY:*\n`;
+            content += `Total Students: ${total}\n`;
+            content += `Present: ${present}\n`;
+            content += `Absent: ${absent}\n`;
+            content += `On Leave: ${leave}\n\n`;
+            
+            // Add absent students
+            content += `*ABSENT STUDENTS (${absent}):*\n`;
+            content += `--------------------------------\n`;
+            content += absentStudents.join('\n') || 'None';
+            content += `\n\n`;
+            
+            // Add leave students
+            content += `*ON LEAVE (${leave}):*\n`;
+            content += `--------------------------------\n`;
+            content += leaveStudents.join('\n') || 'None';
+            content += `\n\n`;
+            
+            // Add all students
+            content += `*ALL STUDENTS (${total}):*\n`;
+            content += `--------------------------------\n`;
+            content += `Roll No. Name                Status\n`;
+            content += `--------------------------------\n`;
+            
+            allStudents.forEach(student => {
+                content += `${student.rollNo}${student.name}${student.status}\n`;
+            });
+            
+            return content;
+        }
+        
+        // Download daily list
+        function downloadList() {
+            const content = generateReportText();
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_${document.getElementById('attendance-date').value}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Copy data to clipboard
+        async function copyData() {
+            const content = generateReportText();
+            
+            try {
+                // Try the modern Clipboard API first
+                await navigator.clipboard.writeText(content);
+                showCopySuccess();
+            } catch (err) {
+                // Fallback method if Clipboard API fails
+                fallbackCopyText(content);
+            }
+        }
+        
+        // Show success message
+        function showCopySuccess() {
+            const originalText = document.getElementById('copy-btn-text').textContent;
+            document.getElementById('copy-btn-text').textContent = 'Copied!';
+            setTimeout(() => {
+                document.getElementById('copy-btn-text').textContent = originalText;
+            }, 2000);
+        }
+        
+        // Fallback method for copying text
+        function fallbackCopyText(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';  // Prevent scrolling to bottom
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess();
+                } else {
+                    showCopyManualInstructions(text);
+                }
+            } catch (err) {
+                showCopyManualInstructions(text);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+        
+        // Show instructions for manual copy
+        function showCopyManualInstructions(text) {
+            const modal = document.getElementById('copy-modal');
+            const textarea = document.getElementById('manual-copy-text');
+            
+            textarea.value = text;
+            modal.style.display = "block";
+            
+            // Focus and select the text
+            textarea.select();
+        }
+        
+        // Open monthly report modal
+        function openMonthlyReportModal() {
+            document.getElementById('monthly-report-modal').style.display = "block";
+        }
+        
+        // Check if a date is Sunday
+        function isSunday(date) {
+            return date.getDay() === 0;
+        }
+        
+        // Check if a date is a non-working day
+        function isNoWorkingDay(dateStr) {
+            const date = new Date(dateStr);
+            return noWorkingDays[dateStr] || isSunday(date);
+        }
+        
+        // Get days in month (28-31)
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+        
+        // Generate monthly report
+        function generateMonthlyReport() {
+            const monthInput = document.getElementById('report-month').value;
+            if (!monthInput) {
+                alert('Please select a month');
+                return;
+            }
+            
+            const [year, month] = monthInput.split('-');
+            const startDate = new Date(year, month - 1, 1);
+            const endDate = new Date(year, month, 0);
+            const totalDaysInMonth = getDaysInMonth(year, month);
+            
+            const grade = document.getElementById('grade-class').value || 'Not specified';
+            
+            let reportContent = `*MONTHLY ATTENDANCE REPORT - ${grade}*\n`;
+            reportContent += `Month: ${startDate.toLocaleString('default', { month: 'long' })} ${year}\n\n`;
+            
+            // Get all dates in the month
+            const allDates = [];
+            const workingDates = [];
+            const nonWorkingDates = [];
+            const sundayDates = [];
+            let currentDate = new Date(startDate);
+            
+            while (currentDate <= endDate) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                allDates.push(dateStr);
+                
+                if (isSunday(currentDate)) {
+                    sundayDates.push(dateStr);
+                    nonWorkingDates.push(dateStr);
+                } else if (noWorkingDays[dateStr]) {
+                    nonWorkingDates.push(dateStr);
+                } else {
+                    workingDates.push(dateStr);
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            // Calculate statistics for each student
+            const studentStats = students.map(student => {
+                const stats = {
+                    id: student.id,
+                    name: student.name,
+                    rollNo: student.rollNo,
+                    absentDays: [],
+                    leaveDays: [],
+                    presentCount: 0,
+                    absentCount: 0,
+                    leaveCount: 0
+                };
+                
+                workingDates.forEach(dateStr => {
+                    if (attendanceRecords[dateStr]) {
+                        const record = attendanceRecords[dateStr].find(r => r.id === student.id);
+                        if (record) {
+                            if (record.status === 'absent') {
+                                stats.absentCount++;
+                                stats.absentDays.push(dateStr);
+                            } else if (record.status === 'leave') {
+                                stats.leaveCount++;
+                                stats.leaveDays.push(dateStr);
+                            } else {
+                                stats.presentCount++;
+                            }
+                        } else {
+                            // No record means present by default
+                            stats.presentCount++;
+                        }
+                    } else {
+                        // No attendance taken that day
+                    }
+                });
+                
+                return stats;
+            });
+            
+            // Add summary statistics
+            reportContent += `*MONTH SUMMARY*\n`;
+            reportContent += `Total Days in Month: ${totalDaysInMonth}\n`;
+            reportContent += `Working Days: ${workingDates.length}\n`;
+            reportContent += `Non-Working Days: ${nonWorkingDates.length}\n`;
+            reportContent += `Sundays: ${sundayDates.length}\n`;
+            
+            if (nonWorkingDates.length > 0) {
+                reportContent += `Non-Working Dates: ${nonWorkingDates.map(d => d.split('-')[2]).join(', ')}\n`;
+            }
+            
+            if (sundayDates.length > 0) {
+                reportContent += `Sunday Dates: ${sundayDates.map(d => d.split('-')[2]).join(', ')}\n`;
+            }
+            
+            reportContent += `\n`;
+            
+            // Add student-wise details
+            reportContent += `*STUDENT ATTENDANCE DETAILS (Working Days Only)*\n`;
+            reportContent += `--------------------------------\n`;
+            
+            studentStats.forEach(student => {
+                reportContent += `${student.rollNo}. ${student.name}\n`;
+                reportContent += `Present: ${student.presentCount} days\n`;
+                reportContent += `Absent: ${student.absentCount} days\n`;
+                
+                if (student.absentCount > 0) {
+                    reportContent += `Absent Dates: ${student.absentDays.map(d => d.split('-')[2]).join(', ')}\n`;
+                }
+                
+                reportContent += `On Leave: ${student.leaveCount} days\n`;
+                
+                if (student.leaveCount > 0) {
+                    reportContent += `Leave Dates: ${student.leaveDays.map(d => d.split('-')[2]).join(', ')}\n`;
+                }
+                
+                reportContent += `--------------------------------\n`;
+            });
+            
+            document.getElementById('monthly-report-content').textContent = reportContent;
+        }
+        
+        // Download monthly report
+        function downloadMonthlyReport() {
+            const content = document.getElementById('monthly-report-content').textContent;
+            if (!content) {
+                alert('Please generate a report first');
+                return;
+            }
+            
+            const monthInput = document.getElementById('report-month').value;
+            const [year, month] = monthInput.split('-');
+            const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `monthly_report_${monthName}_${year}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Clear all data
+        function clearAll() {
+            if (!confirm('Delete ALL data?')) return;
+            students = [];
+            attendanceRecords = {};
+            noWorkingDays = {};
+            currentGrade = '';
+            localStorage.clear();
+            document.getElementById('student-list').innerHTML = '';
+            document.getElementById('stats-summary').innerHTML = '';
+            document.getElementById('grade-class').value = '';
+            document.getElementById('no-working-info').style.display = 'none';
+            document.getElementById('mark-no-working').classList.remove('selected');
+            document.getElementById('mark-no-working').disabled = false;
+        }
+        
+        // Initialize
+        window.onload = init;
+    </script>
+</body>
+</html>
