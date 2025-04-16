@@ -381,11 +381,102 @@
             color: #7f8c8d;
             font-size: 0.9rem;
         }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--primary);
+        }
+        
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        
+        .login-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        
+        .login-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .login-error {
+            color: var(--absent);
+            margin-bottom: 15px;
+            text-align: center;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Add the Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- Login Screen (shown by default) -->
+    <div id="login-screen" class="login-container">
+        <h2>Student Attendance System</h2>
+        <div id="login-error" class="login-error" style="display: none;"></div>
+        <input type="email" id="login-email" class="login-input" placeholder="Email">
+        <input type="password" id="login-password" class="login-input" placeholder="Password">
+        <button id="login-btn" class="login-btn">Login</button>
+        <p style="text-align: center; margin-top: 15px;">
+            Don't have an account? <a href="#" id="show-register">Register</a>
+        </p>
+    </div>
+    
+    <!-- Registration Screen (hidden by default) -->
+    <div id="register-screen" class="login-container" style="display: none;">
+        <h2>Register New Account</h2>
+        <div id="register-error" class="login-error" style="display: none;"></div>
+        <input type="text" id="register-name" class="login-input" placeholder="Your Name">
+        <input type="email" id="register-email" class="login-input" placeholder="Email">
+        <input type="password" id="register-password" class="login-input" placeholder="Password (min 6 characters)">
+        <button id="register-btn" class="login-btn">Register</button>
+        <p style="text-align: center; margin-top: 15px;">
+            Already have an account? <a href="#" id="show-login">Login</a>
+        </p>
+    </div>
+    
+    <!-- Main App (hidden until logged in) -->
+    <div id="app-container" class="container" style="display: none;">
         <h1>Student Attendance System</h1>
         
         <div class="control-panel">
@@ -438,6 +529,7 @@
             </button>
             <button id="monthly-report-btn" class="action-btn">Monthly Report</button>
             <button id="clear-btn" class="action-btn">Clear All</button>
+            <button id="logout-btn" class="action-btn">Logout</button>
         </div>
         
         <div class="creator-credit">Created By TahseenUllah</div>
@@ -473,11 +565,28 @@
     </div>
 
     <script>
-        // Load students from localStorage or initialize empty array
-        let students = JSON.parse(localStorage.getItem('students')) || [];
-        let attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || {};
-        let currentGrade = localStorage.getItem('currentGrade') || '';
-        let noWorkingDays = JSON.parse(localStorage.getItem('noWorkingDays')) || {};
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5QxK9Q8Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q",
+            authDomain: "student-attendance-system-12345.firebaseapp.com",
+            databaseURL: "https://student-attendance-system-12345.firebaseio.com",
+            projectId: "student-attendance-system-12345",
+            storageBucket: "student-attendance-system-12345.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890abcdef"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        
+        // App data
+        let students = [];
+        let attendanceRecords = {};
+        let noWorkingDays = {};
+        let currentGrade = '';
+        let currentUser = null;
         
         // Initialize the app
         function init() {
@@ -485,22 +594,18 @@
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             document.getElementById('attendance-date').value = todayStr;
-            document.getElementById('grade-class').value = currentGrade;
             
             // Set current month as default
             const currentMonth = today.toISOString().slice(0, 7);
             document.getElementById('report-month').value = currentMonth;
             
-            // Automatically mark Sundays as non-working days
-            if (today.getDay() === 0 && !noWorkingDays[todayStr]) {
-                noWorkingDays[todayStr] = true;
-                localStorage.setItem('noWorkingDays', JSON.stringify(noWorkingDays));
-            }
+            // Event listeners for login/register
+            document.getElementById('login-btn').addEventListener('click', loginUser);
+            document.getElementById('register-btn').addEventListener('click', registerUser);
+            document.getElementById('show-register').addEventListener('click', showRegister);
+            document.getElementById('show-login').addEventListener('click', showLogin);
             
-            // Load students for today's date
-            loadAttendance(todayStr);
-            
-            // Event listeners
+            // Event listeners for main app
             document.getElementById('add-student').addEventListener('click', addStudent);
             document.getElementById('new-student').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') addStudent();
@@ -513,7 +618,7 @@
                 // Automatically mark Sundays as non-working days
                 if (date.getDay() === 0 && !noWorkingDays[dateStr]) {
                     noWorkingDays[dateStr] = true;
-                    localStorage.setItem('noWorkingDays', JSON.stringify(noWorkingDays));
+                    saveNoWorkingDays();
                 }
                 
                 loadAttendance(dateStr);
@@ -521,7 +626,7 @@
             
             document.getElementById('grade-class').addEventListener('change', function() {
                 currentGrade = this.value;
-                localStorage.setItem('currentGrade', currentGrade);
+                saveCurrentGrade();
             });
             
             document.getElementById('save-btn').addEventListener('click', saveAttendance);
@@ -529,6 +634,7 @@
             document.getElementById('copy-btn').addEventListener('click', copyData);
             document.getElementById('monthly-report-btn').addEventListener('click', openMonthlyReportModal);
             document.getElementById('clear-btn').addEventListener('click', clearAll);
+            document.getElementById('logout-btn').addEventListener('click', logoutUser);
             
             // No working day button
             document.getElementById('mark-no-working').addEventListener('click', toggleNoWorkingDay);
@@ -565,33 +671,194 @@
                     copyModal.style.display = "none";
                 }
             }
+            
+            // Check auth state
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in
+                    currentUser = user;
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('register-screen').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'block';
+                    
+                    // Load user data
+                    loadUserData();
+                } else {
+                    // No user is signed in
+                    currentUser = null;
+                    document.getElementById('login-screen').style.display = 'block';
+                    document.getElementById('register-screen').style.display = 'none';
+                    document.getElementById('app-container').style.display = 'none';
+                }
+            });
         }
         
-        // Toggle no working day status for current date
-        function toggleNoWorkingDay() {
-            const date = document.getElementById('attendance-date').value;
-            const dateObj = new Date(date);
+        // Login user
+        function loginUser() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorElement = document.getElementById('login-error');
             
-            // Don't allow changing Sundays
-            if (dateObj.getDay() === 0) {
-                alert('Sundays are automatically marked as non-working days and cannot be changed');
+            if (!email || !password) {
+                errorElement.textContent = 'Please enter both email and password';
+                errorElement.style.display = 'block';
                 return;
             }
             
-            const button = document.getElementById('mark-no-working');
+            errorElement.style.display = 'none';
             
-            if (noWorkingDays[date]) {
-                delete noWorkingDays[date];
-                button.classList.remove('selected');
-                document.getElementById('no-working-info').style.display = 'none';
-            } else {
-                noWorkingDays[date] = true;
-                button.classList.add('selected');
-                document.getElementById('no-working-info').style.display = 'block';
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    // Success - handled by auth state listener
+                })
+                .catch(error => {
+                    errorElement.textContent = error.message;
+                    errorElement.style.display = 'block';
+                });
+        }
+        
+        // Register new user
+        function registerUser() {
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const errorElement = document.getElementById('register-error');
+            
+            if (!name || !email || !password) {
+                errorElement.textContent = 'Please fill all fields';
+                errorElement.style.display = 'block';
+                return;
             }
             
-            localStorage.setItem('noWorkingDays', JSON.stringify(noWorkingDays));
-            loadAttendance(date);
+            if (password.length < 6) {
+                errorElement.textContent = 'Password must be at least 6 characters';
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            errorElement.style.display = 'none';
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Add user name to database
+                    return database.ref('users/' + userCredential.user.uid).set({
+                        name: name,
+                        email: email
+                    });
+                })
+                .then(() => {
+                    // Success - handled by auth state listener
+                })
+                .catch(error => {
+                    errorElement.textContent = error.message;
+                    errorElement.style.display = 'block';
+                });
+        }
+        
+        // Logout user
+        function logoutUser() {
+            auth.signOut();
+        }
+        
+        // Show register screen
+        function showRegister(e) {
+            e.preventDefault();
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('register-screen').style.display = 'block';
+            document.getElementById('register-error').style.display = 'none';
+        }
+        
+        // Show login screen
+        function showLogin(e) {
+            e.preventDefault();
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('register-screen').style.display = 'none';
+            document.getElementById('login-error').style.display = 'none';
+        }
+        
+        // Load user data from Firebase
+        function loadUserData() {
+            if (!currentUser) return;
+            
+            const userId = currentUser.uid;
+            
+            // Show loading state
+            document.getElementById('student-list').innerHTML = '<tr><td colspan="4" class="loading"><i class="fas fa-spinner"></i> Loading data...</td></tr>';
+            
+            // Load grade
+            database.ref('users/' + userId + '/grade').once('value')
+                .then(snapshot => {
+                    currentGrade = snapshot.val() || '';
+                    document.getElementById('grade-class').value = currentGrade;
+                });
+            
+            // Load students
+            database.ref('users/' + userId + '/students').once('value')
+                .then(snapshot => {
+                    students = snapshot.val() || [];
+                    sortStudentsAlphabetically();
+                    
+                    // Load attendance records
+                    return database.ref('users/' + userId + '/attendance').once('value');
+                })
+                .then(snapshot => {
+                    attendanceRecords = snapshot.val() || {};
+                    
+                    // Load non-working days
+                    return database.ref('users/' + userId + '/noWorkingDays').once('value');
+                })
+                .then(snapshot => {
+                    noWorkingDays = snapshot.val() || {};
+                    
+                    // Load today's attendance
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0];
+                    loadAttendance(todayStr);
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    alert('Error loading data. Please try again.');
+                });
+        }
+        
+        // Save current grade to Firebase
+        function saveCurrentGrade() {
+            if (!currentUser) return;
+            
+            database.ref('users/' + currentUser.uid + '/grade').set(currentGrade)
+                .catch(error => {
+                    console.error('Error saving grade:', error);
+                });
+        }
+        
+        // Save students to Firebase
+        function saveStudents() {
+            if (!currentUser) return;
+            
+            database.ref('users/' + currentUser.uid + '/students').set(students)
+                .catch(error => {
+                    console.error('Error saving students:', error);
+                });
+        }
+        
+        // Save attendance records to Firebase
+        function saveAttendanceRecords() {
+            if (!currentUser) return;
+            
+            database.ref('users/' + currentUser.uid + '/attendance').set(attendanceRecords)
+                .catch(error => {
+                    console.error('Error saving attendance:', error);
+                });
+        }
+        
+        // Save non-working days to Firebase
+        function saveNoWorkingDays() {
+            if (!currentUser) return;
+            
+            database.ref('users/' + currentUser.uid + '/noWorkingDays').set(noWorkingDays)
+                .catch(error => {
+                    console.error('Error saving non-working days:', error);
+                });
         }
         
         // Sort students alphabetically
@@ -629,7 +896,7 @@
             sortStudentsAlphabetically();
             nameInput.value = '';
             
-            localStorage.setItem('students', JSON.stringify(students));
+            saveStudents();
             loadAttendance(document.getElementById('attendance-date').value);
             updateStatistics();
         }
@@ -694,8 +961,8 @@
                 attendanceRecords[date] = attendanceRecords[date].filter(record => record.id !== id);
             }
             
-            localStorage.setItem('students', JSON.stringify(students));
-            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+            saveStudents();
+            saveAttendanceRecords();
             loadAttendance(document.getElementById('attendance-date').value);
             updateStatistics();
         }
@@ -731,6 +998,7 @@
             
             if (noWorkingDays[date] || isSunday) {
                 // Don't load students if it's a non-working day or Sunday
+                updateStatistics();
                 return;
             }
             
@@ -808,8 +1076,35 @@
             }));
             
             attendanceRecords[date] = records;
-            localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+            saveAttendanceRecords();
             alert('Attendance saved!');
+        }
+        
+        // Toggle no working day status for current date
+        function toggleNoWorkingDay() {
+            const date = document.getElementById('attendance-date').value;
+            const dateObj = new Date(date);
+            
+            // Don't allow changing Sundays
+            if (dateObj.getDay() === 0) {
+                alert('Sundays are automatically marked as non-working days and cannot be changed');
+                return;
+            }
+            
+            const button = document.getElementById('mark-no-working');
+            
+            if (noWorkingDays[date]) {
+                delete noWorkingDays[date];
+                button.classList.remove('selected');
+                document.getElementById('no-working-info').style.display = 'none';
+            } else {
+                noWorkingDays[date] = true;
+                button.classList.add('selected');
+                document.getElementById('no-working-info').style.display = 'block';
+            }
+            
+            saveNoWorkingDays();
+            loadAttendance(date);
         }
         
         // Generate report text with the requested format
@@ -1132,17 +1427,37 @@
         // Clear all data
         function clearAll() {
             if (!confirm('Delete ALL data?')) return;
+            
+            if (!currentUser) return;
+            
+            if (!confirm('This will permanently delete ALL your data. Are you sure?')) return;
+            
+            // Clear local data
             students = [];
             attendanceRecords = {};
             noWorkingDays = {};
             currentGrade = '';
-            localStorage.clear();
-            document.getElementById('student-list').innerHTML = '';
-            document.getElementById('stats-summary').innerHTML = '';
-            document.getElementById('grade-class').value = '';
-            document.getElementById('no-working-info').style.display = 'none';
-            document.getElementById('mark-no-working').classList.remove('selected');
-            document.getElementById('mark-no-working').disabled = false;
+            
+            // Clear Firebase data
+            const userId = currentUser.uid;
+            database.ref('users/' + userId).set({
+                name: currentUser.displayName || '',
+                email: currentUser.email
+            })
+            .then(() => {
+                document.getElementById('student-list').innerHTML = '';
+                document.getElementById('stats-summary').innerHTML = '';
+                document.getElementById('grade-class').value = '';
+                document.getElementById('no-working-info').style.display = 'none';
+                document.getElementById('mark-no-working').classList.remove('selected');
+                document.getElementById('mark-no-working').disabled = false;
+                
+                alert('All data has been cleared');
+            })
+            .catch(error => {
+                console.error('Error clearing data:', error);
+                alert('Error clearing data. Please try again.');
+            });
         }
         
         // Initialize
